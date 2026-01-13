@@ -1,0 +1,110 @@
+/* src/App.css */
+.app {
+  background: #111;
+  min-height: 100vh;
+  margin: 0;
+  color: #eee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+.game {
+  display: flex;
+  gap: 16px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(10, 24px);
+  grid-template-rows: repeat(20, 24px);
+  background: #222;
+  border: 2px solid #555;
+}
+
+.cell {
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 1px solid #333;
+  background: #111;
+}
+
+.filled {
+  border: 1px solid #111;
+}
+
+.type-1 {
+  background: #00f;
+}
+.type-2 {
+  background: #f00;
+}
+.type-3 {
+  background: #0f0;
+}
+.type-4 {
+  background: #ff0;
+}
+.type-5 {
+  background: #f0f;
+}
+.type-6 {
+  background: #fa0;
+}
+.type-7 {
+  background: #0ff;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.panel {
+  background: #222;
+  border: 2px solid #555;
+  padding: 8px 12px;
+  min-width: 150px;
+  font-size: 14px;
+}
+
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 4px;
+}
+
+.score {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.status {
+  color: #ff6b6b;
+  margin-top: 8px;
+  font-weight: bold;
+}
+
+.panel ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+.btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: none;
+  background: #4a90e2;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #337ac9;
+}
