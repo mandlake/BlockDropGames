@@ -108,3 +108,25 @@
 .btn:hover {
   background: #337ac9;
 }
+
+/* Next 블록 미리보기용 보드 */
+.next-board {
+  display: grid;
+  grid-template-columns: repeat(4, 16px);
+  grid-template-rows: repeat(4, 16px);
+  gap: 1px;
+  margin-top: 4px;
+}
+
+.next-cell {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #333;
+  background: #111;
+}
+
+.next-empty {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #aaa;
+}

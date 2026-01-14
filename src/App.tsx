@@ -173,6 +173,8 @@ function App() {
   const [board, setBoard] = useState<Board>(() => createEmptyBoard());
   // 현재 떨어지는 블록
   const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
+  // 다음 블록 (Next 미리보기용)
+  const [nextPiece, setNextPiece] = useState<Piece | null>(null);
   // 점수
   const [score, setScore] = useState(0);
   // 게임 종료 여부
@@ -182,6 +184,7 @@ function App() {
   const resetGame = useCallback(() => {
     const empty = createEmptyBoard();
     const first = createRandomPiece();
+    const second = createRandomPiece(); // Next 블록
 
     setBoard(empty);
     setScore(0);
@@ -191,8 +194,10 @@ function App() {
     if (collide(empty, first, 0, 0)) {
       setGameOver(true);
       setCurrentPiece(null);
+      setNextPiece(null);
     } else {
       setCurrentPiece(first);
+      setNextPiece(second);
     }
   }, []);
 
@@ -223,7 +228,10 @@ function App() {
           if (!shape[r][c]) continue;
           const boardY = y + r;
           const boardX = x + c;
-          if (boardY < 0) continue; // 위 영역은 무시
+
+          // 위 영역은 무시
+          if (boardY < 0) continue;
+
           newBoard[boardY][boardX] = type;
         }
       }
@@ -233,16 +241,22 @@ function App() {
       if (lines > 0) setScore((s) => s + lines * 100);
       setBoard(clearedBoard);
 
-      // 다음 블록 생성
-      const next = createRandomPiece();
-      if (collide(clearedBoard, next, 0, 0)) {
-        // 스폰 불가 -> 게임 오버
+      // Next 블록을 실제로 스폰할 블록으로 사용
+      const spawn = nextPiece ?? createRandomPiece();
+      // 그 다음 Next 큐에 들어갈 새 블록
+      const queued = createRandomPiece();
+
+      // 새 블록 생성 불가 -> 게임 오버
+      if (collide(clearedBoard, spawn, 0, 0)) {
         setGameOver(true);
+        setNextPiece(null);
         return null;
       }
-      return next;
+
+      setNextPiece(queued);
+      return spawn;
     });
-  }, [board, gameOver]);
+  }, [board, gameOver, nextPiece]);
 
   // 자동 낙하 interval 설정
   useEffect(() => {
@@ -292,7 +306,7 @@ function App() {
 
       // 하드 드롭 (Space)
       else if (e.key === " ") {
-        e.preventDefault(); // 페이지 스크롤 방지
+        e.preventDefault(); // 스페이스 스크롤 방지
 
         setCurrentPiece((prev) => {
           if (!prev) return prev;
@@ -319,20 +333,21 @@ function App() {
 
           // 3) 라인 클리어 및 점수 추가
           const { board: clearedBoard, lines } = clearLines(newBoard);
-          if (lines > 0) {
-            setScore((s) => s + lines * 100);
-          }
+          if (lines > 0) setScore((s) => s + lines * 100);
           setBoard(clearedBoard);
 
-          // 4) 다음 블록 생성
-          const next = createRandomPiece();
-          if (collide(clearedBoard, next, 0, 0)) {
-            // 생성 불가 -> 게임 오버
+          // 4) Next 블록에서 하나 꺼내 스폰
+          const spawn = nextPiece ?? createRandomPiece();
+          const queued = createRandomPiece();
+
+          if (collide(clearedBoard, spawn, 0, 0)) {
             setGameOver(true);
+            setNextPiece(null);
             return null;
           }
 
-          return next;
+          setNextPiece(queued);
+          return spawn;
         });
       }
     };
@@ -341,7 +356,7 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [board, currentPiece, gameOver]);
 
-  // 랜더링 용 보드 생성 (현재 떨어지는 블록 포함해서 표시)
+  // 랜더링용 보드 생성 (현재 떨어지는 블록 포함해서 표시)
   const displayBoard: Board = useMemo(() => {
     const clone = board.map((row) => [...row]);
     if (!currentPiece) return clone;
@@ -390,11 +405,33 @@ function App() {
           </div>
 
           <div className="panel">
+            <h2>다음 블록</h2>
+            {/* nextPiece가 있으면 4X4 미리보기 보드로 랜더링 */}
+            {nextPiece ? (
+              <div className="next-board">
+                {nextPiece.shape.map((row, rowIndex) =>
+                  row.map((cell, colIndex) => (
+                    <div
+                      key={`${rowIndex}-${colIndex}`}
+                      className={`next-cell ${
+                        cell ? "filled type-" + nextPiece.type : ""
+                      }`}
+                    />
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="next-empty">없음</div>
+            )}
+          </div>
+
+          <div className="panel">
             <h2>조작법</h2>
             <ul>
               <li>← → : 좌우 이동</li>
               <li>↓ : 한 칸 내리기</li>
               <li>↑ : 회전</li>
+              <li>Space : 하드드롭</li>
             </ul>
 
             {gameOver && (
