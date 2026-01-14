@@ -90,13 +90,22 @@
 
 /* ㄷ 블록 */
 .type-8 {
-  background: #b5651d;
+  background: #05a;
 }
 
 /* = 블록 */
 .type-9 {
-  background: #ffffff;
-  border: 1px solid #999;
+  background: #fff;
+}
+
+/* = 블록 */
+.type-10 {
+  background: #a10;
+}
+
+/* = 블록 */
+.type-11 {
+  background: #f50;
 }
 
 /* =========================
