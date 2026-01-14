@@ -179,6 +179,16 @@ function App() {
   const [score, setScore] = useState(0);
   // 게임 종료 여부
   const [gameOver, setGameOver] = useState(false);
+  // 레벨
+  const [level, setLevel] = useState(1);
+  // 지금까지 클리어한 총 라인 수
+  const [linesCleared, setLinesCleared] = useState(0);
+
+  // 레벨에 따라 낙하 속도(ms) 결정(최소 100ms)
+  const currentSpeed = useMemo(
+    () => Math.max(100, 500 - (level - 1) * 50),
+    [level]
+  );
 
   // 게임 초기화
   const resetGame = useCallback(() => {
@@ -189,6 +199,8 @@ function App() {
     setBoard(empty);
     setScore(0);
     setGameOver(false);
+    setLevel(1); // 레벨 초기화
+    setLinesCleared(0); // 누적 라인 수 초기화
 
     // 시작부터 충돌 = 즉시 게임 오버
     if (collide(empty, first, 0, 0)) {
@@ -238,7 +250,23 @@ function App() {
 
       // 라인 클리어
       const { board: clearedBoard, lines } = clearLines(newBoard);
-      if (lines > 0) setScore((s) => s + lines * 100);
+      if (lines > 0) {
+        setScore((s) => s + lines * 100);
+
+        // 누적 라인 수 업데이트 및 레벨 상승 처리
+        setLinesCleared((prevTotal) => {
+          const newTotal = prevTotal + lines;
+          setLevel((prevLevel) => {
+            // 예: 레벨당 10줄 클리어 시 레벨업
+            const threshold = prevLevel + lines;
+            if (newTotal >= threshold) {
+              return prevLevel + 1;
+            }
+            return prevLevel;
+          });
+          return newTotal;
+        });
+      }
       setBoard(clearedBoard);
 
       // Next 블록을 실제로 스폰할 블록으로 사용
@@ -261,7 +289,7 @@ function App() {
   // 자동 낙하 interval 설정
   useEffect(() => {
     if (gameOver) return;
-    const id = window.setInterval(tick, 500);
+    const id = window.setInterval(tick, currentSpeed);
     return () => window.clearInterval(id);
   }, [tick, gameOver]);
 
@@ -333,7 +361,21 @@ function App() {
 
           // 3) 라인 클리어 및 점수 추가
           const { board: clearedBoard, lines } = clearLines(newBoard);
-          if (lines > 0) setScore((s) => s + lines * 100);
+          if (lines > 0) {
+            setScore((s) => s + lines * 100);
+
+            setLinesCleared((prevTotal) => {
+              const newTotal = prevTotal + lines;
+              setLevel((prevLevel) => {
+                const threshold = prevLevel * 10;
+                if (newTotal >= threshold) {
+                  return prevLevel + 1;
+                }
+                return prevLevel;
+              });
+              return newTotal;
+            });
+          }
           setBoard(clearedBoard);
 
           // 4) Next 블록에서 하나 꺼내 스폰
@@ -401,6 +443,7 @@ function App() {
           <div className="panel">
             <h2>점수</h2>
             <div className="score">{score}</div>
+            <div className="level">레벨: {level}</div>
             {gameOver && <div className="status">GAME OVER</div>}
           </div>
 

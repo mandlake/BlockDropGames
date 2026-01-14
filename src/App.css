@@ -122,6 +122,13 @@
   font-weight: bold;
 }
 
+/* 레벨 표시 텍스트 */
+.level {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #ccc;
+}
+
 /* GAME OVER 텍스트 */
 .status {
   color: #ff6b6b;
