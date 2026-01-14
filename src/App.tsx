@@ -183,6 +183,8 @@ function App() {
   const [level, setLevel] = useState(1);
   // 지금까지 클리어한 총 라인 수
   const [linesCleared, setLinesCleared] = useState(0);
+  // 레벨업 애니메이션 표시 여부
+  const [showLevelUp, setShowLevelUp] = useState(false);
 
   // 레벨에 따라 낙하 속도(ms) 결정(최소 100ms)
   const currentSpeed = useMemo(
@@ -201,6 +203,7 @@ function App() {
     setGameOver(false);
     setLevel(1); // 레벨 초기화
     setLinesCleared(0); // 누적 라인 수 초기화
+    setShowLevelUp(false); // 레벨업 애니메이션 초기화
 
     // 시작부터 충돌 = 즉시 게임 오버
     if (collide(empty, first, 0, 0)) {
@@ -251,15 +254,18 @@ function App() {
       // 라인 클리어
       const { board: clearedBoard, lines } = clearLines(newBoard);
       if (lines > 0) {
+        // 점수 증가
         setScore((s) => s + lines * 100);
 
         // 누적 라인 수 업데이트 및 레벨 상승 처리
         setLinesCleared((prevTotal) => {
           const newTotal = prevTotal + lines;
+
           setLevel((prevLevel) => {
-            // 예: 레벨당 10줄 클리어 시 레벨업
-            const threshold = prevLevel + lines;
+            const threshold = prevLevel * 10; // 예: 레벨당 10줄 클리어 시 레벨업
             if (newTotal >= threshold) {
+              // 레벨업 시 애니메이션 표시
+              setShowLevelUp(true);
               return prevLevel + 1;
             }
             return prevLevel;
@@ -286,12 +292,12 @@ function App() {
     });
   }, [board, gameOver, nextPiece]);
 
-  // 자동 낙하 interval 설정
+  // 자동 낙하 interval 설정 (레벨에 따라 속도 변경)
   useEffect(() => {
     if (gameOver) return;
     const id = window.setInterval(tick, currentSpeed);
     return () => window.clearInterval(id);
-  }, [tick, gameOver]);
+  }, [tick, gameOver, currentSpeed]);
 
   // 키보드 입력 처리 (좌우 이동, 회전, 하드드롭 포함)
   useEffect(() => {
@@ -366,9 +372,11 @@ function App() {
 
             setLinesCleared((prevTotal) => {
               const newTotal = prevTotal + lines;
+
               setLevel((prevLevel) => {
                 const threshold = prevLevel * 10;
                 if (newTotal >= threshold) {
+                  setShowLevelUp(true); // 레벨업 애니메이션 표시
                   return prevLevel + 1;
                 }
                 return prevLevel;
@@ -398,6 +406,16 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [board, currentPiece, gameOver]);
 
+  // 레벨업 애니메이션 일정 시간 후 자동 숨김
+  useEffect(() => {
+    if (!showLevelUp) return;
+    const id = window.setTimeout(() => {
+      setShowLevelUp(false);
+    }, 800); // 0.8초 정도 표시
+
+    return () => window.clearTimeout(id);
+  }, [showLevelUp]);
+
   // 랜더링용 보드 생성 (현재 떨어지는 블록 포함해서 표시)
   const displayBoard: Board = useMemo(() => {
     const clone = board.map((row) => [...row]);
@@ -425,6 +443,12 @@ function App() {
 
   return (
     <div className="app">
+      {/* 레벨업 애니메이션 오버레이 */}
+      {showLevelUp && (
+        <div className="level-up-overlay">
+          <div className="level-up-text">LEVEL {level}</div>
+        </div>
+      )}
       <div className="game">
         {/* 실제 게임 보드 랜더링 */}
         <div className="board">
