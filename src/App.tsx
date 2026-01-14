@@ -222,10 +222,11 @@ function App() {
   // 레벨업 애니메이션 표시 여부
   const [showLevelUp, setShowLevelUp] = useState(false);
 
-  // 누적 라인 수에 따른 레벨 계산 (예: 5줄당 1레벨 업, 최대 20레벨)
+  // 누적 라인 수에 따른 레벨 계산 (예: 5줄당 1레벨 업)
   const level = useMemo(() => {
-    const lvl = Math.floor(linesCleared / 5) + 1; // 0~4줄: 1레벨, 5~9줄: 2레벨...
-    return Math.min(lvl, 20); // SPEED_TABLE 최대 레벨에 맞춤
+    // 0~4줄: 1레벨, 5~9줄: 2레벨...
+    const lvl = Math.floor(linesCleared / 5) + 1;
+    return lvl; // 더 이상 상한 없음
   }, [linesCleared]);
 
   // 레벨에 따른 낙하 속도(ms) 결정 (TGM 스타일 테이블 사용)
