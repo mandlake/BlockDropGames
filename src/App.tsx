@@ -267,6 +267,8 @@ function App() {
   const [linesCleared, setLinesCleared] = useState(0);
   // 레벨업 애니메이션 표시 여부
   const [showLevelUp, setShowLevelUp] = useState(false);
+  // 블록 타입별 색상 팔레트 (한 판 시작 시 고정)
+  const [colors, setColors] = useState<Record<number, string>>({});
 
   // 누적 라인 수에 따른 레벨 계산 (예: 5줄당 1레벨 업)
   const level = useMemo(() => {
@@ -281,11 +283,45 @@ function App() {
     return entry ? entry.speed : SPEED_TABLE[SPEED_TABLE.length - 1].speed;
   }, [level]);
 
+  // 블록 타입 목록을 받아, 각 타입별로 서로 다른 밝은 색을 생성
+  function generateColorPalette(types: number[]): Record<number, string> {
+    const palette: Record<number, string> = {};
+    const usedHues: number[] = [];
+
+    for (const type of types) {
+      let hue: number;
+      let attempts = 0;
+
+      // 다른 색과 너무 비슷한 hue는 피하려고 대략 간격을 띄운다
+      do {
+        hue = Math.floor(Math.random() * 360); // 0~359
+        attempts++;
+      } while (
+        usedHues.some((h) => Math.abs(h - hue) < 25) && // hue 간격 25도 이상
+        attempts < 10
+      );
+
+      usedHues.push(hue);
+
+      const saturation = 80; // 채도 높게
+      const lightness = 55; // 충분히 밝게 → #111과는 확연히 다름
+
+      palette[type] = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    }
+
+    return palette;
+  }
+
   // 게임 초기화
   const resetGame = useCallback(() => {
     const empty = createEmptyBoard();
     const first = createRandomPiece();
     const second = createRandomPiece(); // Next 블록
+
+    // ✅ 타입 목록 추출 (예: [1,2,3,4,5,6,7,8,9])
+    const types = TETROMINOES.map((t) => t.type);
+    // ✅ 이 판에서 사용할 팔레트 생성
+    setColors(generateColorPalette(types));
 
     setBoard(empty);
     setScore(0);
@@ -546,7 +582,8 @@ function App() {
             row.map((cell, colIndex) => (
               <div
                 key={`${rowIndex}-${colIndex}`}
-                className={`cell ${cell ? "filled type-" + cell : ""}`}
+                className={`cell ${cell ? "filled" : ""}`}
+                style={cell ? { backgroundColor: colors[cell] } : undefined}
               />
             ))
           )}
@@ -570,9 +607,12 @@ function App() {
                   row.map((cell, colIndex) => (
                     <div
                       key={`${rowIndex}-${colIndex}`}
-                      className={`next-cell ${
-                        cell ? "filled type-" + nextPiece.type : ""
-                      }`}
+                      className={`next-cell ${cell ? "filled" : ""}`}
+                      style={
+                        cell
+                          ? { backgroundColor: colors[nextPiece.type] }
+                          : undefined
+                      }
                     />
                   ))
                 )}

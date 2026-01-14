@@ -49,66 +49,6 @@
 }
 
 /* =========================
- * 블록 색상 (type-1 ~ type-7)
- * ========================= */
-
-/* 각 테트로미노 타입별 색상 */
-/* I 블록 */
-.type-1 {
-  background: #00f;
-}
-
-/* Z 블록 */
-.type-2 {
-  background: #f00;
-}
-
-/* S 블록 */
-.type-3 {
-  background: #0f0;
-}
-
-/* O 블록 */
-.type-4 {
-  background: #ff0;
-}
-
-/* T 블록 */
-.type-5 {
-  background: #f0f;
-}
-
-/* L 블록 */
-.type-6 {
-  background: #fa0;
-}
-
-/* J 블록 */
-.type-7 {
-  background: #0ff;
-}
-
-/* ㄷ 블록 */
-.type-8 {
-  background: #05a;
-}
-
-/* = 블록 */
-.type-9 {
-  background: #fff;
-}
-
-/* = 블록 */
-.type-10 {
-  background: #a10;
-}
-
-/* = 블록 */
-.type-11 {
-  background: #f50;
-}
-
-/* =========================
  * 우측 사이드 패널
  * ========================= */
 
