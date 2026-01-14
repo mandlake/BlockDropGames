@@ -8,12 +8,26 @@ import {
 } from "react";
 import "./App.css";
 
+/**
+ * =========================
+ * 설정값 (여기만 바꾸면 됨)
+ * =========================
+ */
+
 // 보드 크기
 const COLS = 14;
 const ROWS = 20;
 
-// 이번 판에서 사용할 블록 종류 개수 (원하면 숫자만 바꾸면 됨)
+// 이번 판에서 사용할 블록 종류 개수 (타입 개수)
 const SHAPE_TYPE_COUNT = 10;
+
+// 블록 모양의 한 변 길이 N의 최소/최대 (N x N)
+const MIN_SHAPE_SIZE = 3;
+const MAX_SHAPE_SIZE = 4;
+
+// 한 블록 안에 채워질 최소/최대 칸 수
+const MIN_BLOCKS_PER_SHAPE = 3;
+const MAX_BLOCKS_PER_SHAPE = 7;
 
 // TGM 느낌의 레벨별 속도 테이블 (ms 단위)
 const SPEED_TABLE: { level: number; speed: number }[] = [
@@ -39,27 +53,29 @@ const SPEED_TABLE: { level: number; speed: number }[] = [
   { level: 20, speed: 70 },
 ];
 
-// 타입 정의
+/**
+ * 타입 정의
+ */
 type Cell = number;
 type Board = Cell[][];
 type Shape = number[][];
 
-// 현재 조각(Piece)의 형태
 interface Piece {
-  shape: Shape; // 4x4 모양
-  x: number; // 보드 상의 x 위치
-  y: number; // 보드 상의 y 위치
-  type: number; // 블록 타입(색상 구분용)
+  shape: Shape; // N x N 모양
+  x: number;
+  y: number;
+  type: number; // 블록 타입 (색상 구분용)
 }
 
-// 이번 판에서 사용하는 블록 프로토타입
 interface PieceProto {
   type: number;
   shape: Shape;
 }
 
-// ▒▒ 금지 테트로미노 패턴 (7개) ▒▒
-// 4x4 기준으로 정의 (예전 TETROMINOES에서 1~7만 사용)
+/**
+ * 금지 테트로미노 패턴 (7개) – 4x4 기준
+ * 회전 + 정규화 후 동일하면 제외
+ */
 const FORBIDDEN_TETROMINOES: Shape[] = [
   // I
   [
@@ -112,14 +128,16 @@ const FORBIDDEN_TETROMINOES: Shape[] = [
   ],
 ];
 
-// ▒▒ 유틸 함수들 ▒▒
+/**
+ * 유틸 함수
+ */
 
 // 빈 보드 생성
 function createEmptyBoard(): Board {
   return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
 }
 
-// NxN 매트릭스(여기선 4x4) 90도 회전
+// N x N 회전
 function rotateMatrix(matrix: Shape): Shape {
   const N = matrix.length;
   const result: Shape = Array.from({ length: N }, () => Array(N).fill(0));
@@ -132,7 +150,7 @@ function rotateMatrix(matrix: Shape): Shape {
   return result;
 }
 
-// 4x4 모양을 실제 블록이 있는 최소 bounding box 크기로 잘라내기
+// 실제 블록이 있는 최소 bounding box로 잘라내기
 function normalizeShape(shape: Shape): Shape {
   const rows = shape.length;
   const cols = shape[0].length;
@@ -153,7 +171,6 @@ function normalizeShape(shape: Shape): Shape {
     }
   }
 
-  // 전부 0인 경우
   if (maxRow === -1) {
     return [[0]];
   }
@@ -179,19 +196,17 @@ function shapesEqual(a: Shape, b: Shape): boolean {
   return true;
 }
 
-// 금지 테트로미노들을 미리 정규화
+// 금지 패턴 미리 정규화
 const FORBIDDEN_NORMALIZED = FORBIDDEN_TETROMINOES.map(normalizeShape);
 
-// 주어진 4x4 shape가 (회전 포함) 7개 테트로미노 중 하나인지 검사
+// 주어진 shape가(회전 포함) 7 테트로미노 중 하나인지 검사
 function isForbiddenTetromino(shape: Shape): boolean {
   let current: Shape = shape;
 
   for (let r = 0; r < 4; r++) {
     const norm = normalizeShape(current);
     for (const forbidden of FORBIDDEN_NORMALIZED) {
-      if (shapesEqual(norm, forbidden)) {
-        return true;
-      }
+      if (shapesEqual(norm, forbidden)) return true;
     }
     current = rotateMatrix(current);
   }
@@ -199,11 +214,17 @@ function isForbiddenTetromino(shape: Shape): boolean {
   return false;
 }
 
-// 연결된 랜덤 4x4 모양 생성 (최소 minBlocks ~ 최대 maxBlocks 칸 채우기)
-function generateRandomShape4x4(minBlocks = 4, maxBlocks = 7): Shape {
-  const size = 4;
-  const targetBlocks =
-    minBlocks + Math.floor(Math.random() * (maxBlocks - minBlocks + 1));
+// 연결된 랜덤 N x N 모양 생성
+function generateRandomShape(
+  size: number,
+  minBlocks: number,
+  maxBlocks: number
+): Shape {
+  const maxPossible = size * size;
+  const minB = Math.max(1, Math.min(minBlocks, maxPossible));
+  const maxB = Math.max(minB, Math.min(maxBlocks, maxPossible));
+
+  const targetBlocks = minB + Math.floor(Math.random() * (maxB - minB + 1));
 
   const shape: Shape = Array.from({ length: size }, () => Array(size).fill(0));
 
@@ -235,7 +256,6 @@ function generateRandomShape4x4(minBlocks = 4, maxBlocks = 7): Shape {
     }
 
     if (emptyNeighbors.length === 0) {
-      // 더 확장 불가 → frontier에서 제거
       frontier.splice(idx, 1);
       continue;
     }
@@ -249,36 +269,45 @@ function generateRandomShape4x4(minBlocks = 4, maxBlocks = 7): Shape {
     }
   }
 
-  // 혹시 너무 적게 채워졌으면 다시
-  if (filled < minBlocks) {
-    return generateRandomShape4x4(minBlocks, maxBlocks);
+  if (filled < minB) {
+    return generateRandomShape(size, minBlocks, maxBlocks);
   }
 
   return shape;
 }
 
-// 7개 테트로미노와 겹치지 않는 랜덤 4x4 모양 생성
-function generateLegalShape4x4(): Shape {
+// N x N 범위를 랜덤으로 뽑아서, 금지 테트로미노가 아닌 모양 생성
+function generateLegalShapeRandomSize(): Shape {
   while (true) {
-    const candidate = generateRandomShape4x4(4, 7);
+    const sizeRange = MAX_SHAPE_SIZE - MIN_SHAPE_SIZE + 1;
+    const size = MIN_SHAPE_SIZE + Math.floor(Math.random() * sizeRange);
+
+    const candidate = generateRandomShape(
+      size,
+      MIN_BLOCKS_PER_SHAPE,
+      MAX_BLOCKS_PER_SHAPE
+    );
+
     if (!isForbiddenTetromino(candidate)) {
       return candidate;
     }
   }
 }
 
-// 랜덤 블록 생성 (이번 판에서 준비된 프로토타입들 중 하나 선택)
+// 이번 판에서 준비된 프로토타입들 중 하나를 사용해 조각 생성
 function createRandomPiece(protos: PieceProto[]): Piece {
   const list =
-    protos.length > 0 ? protos : [{ type: 1, shape: generateLegalShape4x4() }];
+    protos.length > 0
+      ? protos
+      : [{ type: 1, shape: generateLegalShapeRandomSize() }];
 
   const proto = list[Math.floor(Math.random() * list.length)];
 
-  // 보드 중앙에서 2칸 왼쪽 정도에 스폰 (4x4 기준)
-  const spawnX = Math.floor(COLS / 2) - 2;
+  const size = proto.shape.length;
+  const spawnX = Math.floor(COLS / 2) - Math.floor(size / 2);
 
   return {
-    shape: proto.shape.map((row) => [...row]), // 깊은 복사
+    shape: proto.shape.map((row) => [...row]),
     x: spawnX,
     y: 0,
     type: proto.type,
@@ -316,7 +345,7 @@ function collide(
   return false;
 }
 
-// 라인 완성 시 삭제 후 위에서 내려오도록 처리
+// 라인 클리어 처리
 function clearLines(board: Board): { board: Board; lines: number } {
   let lines = 0;
   const newBoard = board.map((row) => [...row]);
@@ -333,7 +362,7 @@ function clearLines(board: Board): { board: Board; lines: number } {
   return { board: newBoard, lines };
 }
 
-// 클리어한 줄 수와 레벨에 따른 점수 계산
+// 클리어한 줄 수와 레벨에 따른 점수
 function getLineScore(lines: number, level: number): number {
   if (lines <= 0) return 0;
 
@@ -343,6 +372,9 @@ function getLineScore(lines: number, level: number): number {
   return base * level;
 }
 
+/**
+ * React 컴포넌트
+ */
 function App() {
   const [board, setBoard] = useState<Board>(() => createEmptyBoard());
   const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
@@ -359,13 +391,13 @@ function App() {
     return Math.floor(linesCleared / 5) + 1;
   }, [linesCleared]);
 
-  // 레벨에 따른 낙하 속도(ms)
+  // 레벨에 따른 낙하 속도
   const currentSpeed = useMemo(() => {
     const entry = SPEED_TABLE.find((e) => e.level === level);
     return entry ? entry.speed : SPEED_TABLE[SPEED_TABLE.length - 1].speed;
   }, [level]);
 
-  // 타입 목록을 받아, 각 타입별로 서로 다른 밝은 색을 생성
+  // 타입 목록을 받아 각 타입별로 랜덤 밝은 색 생성
   function generateColorPalette(types: number[]): Record<number, string> {
     const palette: Record<number, string> = {};
     const usedHues: number[] = [];
@@ -394,17 +426,16 @@ function App() {
   const resetGame = useCallback(() => {
     const empty = createEmptyBoard();
 
-    // 이번 판에서 사용할 랜덤 블록 프로토타입 N개 생성
+    // 이번 판에서 사용할 블록 프로토타입들 생성
     const protos: PieceProto[] = [];
     for (let i = 1; i <= SHAPE_TYPE_COUNT; i++) {
       protos.push({
         type: i,
-        shape: generateLegalShape4x4(),
+        shape: generateLegalShapeRandomSize(),
       });
     }
     setPiecePrototypes(protos);
 
-    // 색상 팔레트 생성 (타입별 고정)
     const types = protos.map((p) => p.type);
     setColors(generateColorPalette(types));
 
@@ -478,14 +509,14 @@ function App() {
     });
   }, [board, gameOver, nextPiece, level, piecePrototypes]);
 
-  // 자동 낙하 interval 설정
+  // 자동 낙하 interval
   useEffect(() => {
     if (gameOver) return;
     const id = window.setInterval(tick, currentSpeed);
     return () => window.clearInterval(id);
   }, [tick, gameOver, currentSpeed]);
 
-  // 키보드 입력 처리
+  // 키보드 입력
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (gameOver || !currentPiece || !piecePrototypes.length) return;
@@ -564,7 +595,7 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [board, currentPiece, gameOver, level, nextPiece, piecePrototypes]);
 
-  // 레벨업 애니메이션 자동 숨김
+  // 레벨업 애니메이션 숨김
   useEffect(() => {
     if (!showLevelUp) return;
     const id = window.setTimeout(() => {
@@ -573,7 +604,7 @@ function App() {
     return () => window.clearTimeout(id);
   }, [showLevelUp]);
 
-  // 렌더링용 보드 (현재 떨어지는 블록 합성)
+  // 렌더링용 보드
   const displayBoard: Board = useMemo(() => {
     const clone = board.map((row) => [...row]);
     if (!currentPiece) return clone;
