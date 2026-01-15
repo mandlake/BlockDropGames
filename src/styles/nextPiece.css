@@ -1,0 +1,29 @@
+/* =========================
+ * Next 블록 미리보기 영역
+ * ========================= */
+
+/* 4 x 4 미리보기 그리드 */
+.next-board {
+  display: grid;
+  grid-template-columns: repeat(4, 16px);
+  grid-template-rows: repeat(4, 16px);
+  gap: 1px;
+  margin-top: 4px;
+}
+
+/* Next 보드의 한 칸 */
+/* background를 지정하지 않아야 type-* 색상이 그대로 보인다 */
+.next-cell {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #333;
+  /* 빈 칸은 패널 배경(#222)이 보이고,
+     filled + type-* 조합일 때는 type-* 색상이 보인다 */
+}
+
+/* nextPiece가 없을 때 표시용 텍스트 */
+.next-empty {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #aaa;
+}

@@ -1,0 +1,68 @@
+/* =========================
+ * 우측 사이드 패널
+ * ========================= */
+
+/* 점수 / 다음 블록 / 조작법 패널을 세로로 배치 */
+.side {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* 각 패널 기본 박스 스타일 */
+.panel {
+  background: #222;
+  border: 2px solid #555;
+  padding: 8px 12px;
+  min-width: 150px;
+  font-size: 14px;
+}
+
+/* 패널 제목 스타일 */
+.panel h2 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  border-bottom: 1px solid #444;
+  padding-bottom: 4px;
+}
+
+/* 점수 표시 텍스트 */
+.score {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* 레벨 표시 텍스트 */
+.level {
+  margin-top: 4px;
+  font-size: 14px;
+  color: #ccc;
+}
+
+/* GAME OVER 텍스트 */
+.status {
+  color: #ff6b6b;
+  margin-top: 8px;
+  font-weight: bold;
+}
+
+/* 조작법 리스트 스타일 */
+.panel ul {
+  margin: 4px 0;
+  padding-left: 18px;
+}
+
+/* 다시 시작 버튼 */
+.btn {
+  margin-top: 8px;
+  padding: 6px 10px;
+  border: none;
+  background: #4a90e2;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: #337ac9;
+}

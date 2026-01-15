@@ -1,0 +1,26 @@
+/* =========================
+ * 메인 BlockDrop 보드
+ * ========================= */
+
+/* 그리드 보드 */
+.board {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 24px);
+  grid-template-rows: repeat(var(--rows), 24px);
+  background: #222;
+  border: 2px solid #555;
+}
+
+/* 보드 한 칸 기본 스타일 */
+.cell {
+  width: 24px;
+  height: 24px;
+  box-sizing: border-box;
+  border: 1px solid #333; /* 그리드 라인 효과 */
+  background: #111;
+}
+
+/* 블록이 채워진 칸에 공통으로 적용되는 스타일 */
+.filled {
+  border: 1px solid #111; /* 테두리 감추기용(블록끼리 붙어 보이도록) */
+}

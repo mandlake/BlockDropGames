@@ -1,6 +1,5 @@
 // src/App.tsx
 import { useCallback, useEffect, useMemo, useState } from "react";
-import "./App.css";
 
 import type { Board, Shape, Piece, PieceProto } from "./game/types";
 import { GameBoard } from "./components/GameBoard";
@@ -8,6 +7,12 @@ import { NextPiecePanel } from "./components/NextPiecePanel";
 import { ScorePanel } from "./components/ScorePanel";
 import { ControlsPanel } from "./components/ControlsPanel";
 import { LevelUpOverlay } from "./components/LevelUpOverlay";
+
+import "./styles/blockDrop.css";
+import "./styles/layout.css";
+import "./styles/sidePanels.css";
+import "./styles/nextPiece.css";
+import "./styles/levelUp.css";
 
 /**
  * =========================
