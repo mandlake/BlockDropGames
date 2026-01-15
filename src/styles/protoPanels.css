@@ -1,0 +1,39 @@
+/* =========================
+ * 이번 판 블록 목록 (piece prototypes)
+ * ========================= */
+
+/* 이번 판 블록 목록 컨테이너: 세로로 나열 */
+.prototypes {
+  display: flex;
+  flex-direction: column; /* 👉 세로 방향 */
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* 각 블록 아이템 */
+.prototype-item {
+  display: flex;
+  flex-direction: row; /* 라벨 + 미니그리드 가로 배치 */
+  align-items: center;
+  gap: 6px;
+}
+
+.prototype-label {
+  font-size: 11px;
+  color: #bbb;
+  min-width: 32px; /* 라벨 폭 고정해서 정렬 맞춤용(선택) */
+  text-align: right; /* 선택 사항 */
+}
+
+/* 개별 블록 미니 그리드 */
+.prototype-grid {
+  display: grid;
+  gap: 1px;
+}
+
+.prototype-cell {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #333;
+  background: transparent;
+}

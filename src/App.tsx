@@ -7,6 +7,7 @@ import { NextPiecePanel } from "./components/NextPiecePanel";
 import { ScorePanel } from "./components/ScorePanel";
 import { ControlsPanel } from "./components/ControlsPanel";
 import { LevelUpOverlay } from "./components/LevelUpOverlay";
+import { PrototypePanel } from "./components/PrototypePanel";
 
 import "./styles/App.css";
 
@@ -18,7 +19,7 @@ import "./styles/App.css";
 
 // 보드 크기
 const COLS = 14;
-const ROWS = 20;
+const ROWS = 25;
 
 // 이번 판에서 사용할 블록 종류 개수 (타입 개수)
 const SHAPE_TYPE_COUNT = 10;
@@ -613,6 +614,10 @@ function App() {
       {showLevelUp && <LevelUpOverlay level={level} />}
 
       <div className="game">
+        {/* 1번: 이번 판 블록 목록 패널 */}
+        <PrototypePanel piecePrototypes={piecePrototypes} colors={colors} />
+
+        {/* 2번: 메인 게임 보드 */}
         <GameBoard
           board={displayBoard}
           cols={COLS}
@@ -620,6 +625,7 @@ function App() {
           colors={colors}
         />
 
+        {/* 3번: 기존 점수 / 다음 블록 / 조작법 패널 */}
         <div className="side">
           <ScorePanel
             score={score}
