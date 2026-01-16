@@ -6,7 +6,7 @@
 .side {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  gap: 20px;
 }
 
 /* 각 패널 기본 박스 스타일 */
