@@ -3,12 +3,13 @@
  * 유틸 함수
  */
 import type { Board, Piece, Shape } from "../types";
-import { COLS, ROWS } from "../constants";
 
 // 블록 충돌 여부 판단
 export function collide(
   board: Board,
   piece: Piece,
+  cols: number,
+  rows: number,
   offsetX: number,
   offsetY: number,
   shape: Shape = piece.shape
@@ -23,7 +24,7 @@ export function collide(
       const newX = xPos + x;
       const newY = yPos + y;
 
-      if (newX < 0 || newX >= COLS || newY >= ROWS) return true;
+      if (newX < 0 || newX >= cols || newY >= rows) return true;
       if (newY < 0) continue;
 
       if (board[newY][newX]) return true;

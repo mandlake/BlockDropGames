@@ -1,0 +1,42 @@
+/* 좌측 컬럼(Prototype + Settings) */
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* SettingsPanel 내부 */
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.settings input {
+  background: #111;
+  border: 1px solid #444;
+  color: #eee;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.settings-keys {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-subtitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #eee;
+}
