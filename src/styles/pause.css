@@ -1,0 +1,31 @@
+/* Pause 전체 오버레이 */
+.pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+
+  /* 배경 흐림 + 어둡게 */
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px; /* 중앙 상단 느낌 */
+}
+
+/* PAUSED 텍스트 */
+.pause-text {
+  padding: 14px 36px;
+  border-radius: 12px;
+
+  background: rgba(0, 0, 0, 0.7);
+  border: 2px solid #9fd3ff;
+
+  color: #9fd3ff;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 2px;
+
+  text-shadow: 0 0 12px rgba(0, 0, 0, 0.9);
+}

@@ -8,6 +8,7 @@ export const ControlsPanel = () => {
         <li>↓ : 한 칸 내리기</li>
         <li>↑ : 회전</li>
         <li>Space : 하드드롭</li>
+        <li>ESC : 일시정지 / 재개</li>
       </ul>
     </div>
   );

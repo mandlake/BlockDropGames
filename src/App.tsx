@@ -52,6 +52,7 @@ function generateColorPalette(types: number[]): Colors {
 
 export default function App() {
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
+  const [paused, setPaused] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [board, setBoard] = useState<Board>(() =>
@@ -115,6 +116,7 @@ export default function App() {
   }, [resetGame]);
 
   const tick = useCallback(() => {
+    if (paused) return;
     if (gameOver || !piecePrototypes.length) return;
 
     setCurrentPiece((prev) => {
@@ -168,22 +170,38 @@ export default function App() {
     board,
     config.cols,
     config.rows,
+    paused,
     gameOver,
     level,
     nextPiece,
     piecePrototypes,
   ]);
 
+  const closeSettings = useCallback(() => {
+    setIsSettingsOpen(false);
+    setPaused(false);
+  }, []);
+
   useEffect(() => {
     if (gameOver) return;
     const id = window.setInterval(tick, currentSpeed);
     return () => window.clearInterval(id);
-  }, [tick, gameOver, currentSpeed]);
+  }, [tick, gameOver, paused, currentSpeed]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 설정 모달 열려있으면 게임 입력 막기
-      if (isSettingsOpen) return;
+      // ✅ ESC: 설정 모달이 열려 있으면 닫고, 아니면 일시정지 토글
+      if (e.key === "Escape") {
+        if (isSettingsOpen) {
+          closeSettings();
+        } else {
+          setPaused((p) => !p);
+        }
+        return;
+      }
+
+      // ✅ pause 중이거나 설정 모달 중이면 조작 불가
+      if (paused || isSettingsOpen) return;
 
       if (gameOver || !currentPiece || !piecePrototypes.length) return;
 
@@ -279,14 +297,16 @@ export default function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [
+    paused,
+    isSettingsOpen,
+    closeSettings,
+    gameOver,
+    currentPiece,
+    piecePrototypes,
     board,
     config,
-    currentPiece,
-    gameOver,
-    isSettingsOpen,
     level,
     nextPiece,
-    piecePrototypes,
   ]);
 
   useEffect(() => {
@@ -339,7 +359,10 @@ export default function App() {
           {/* 설정 버튼 (보드 위) */}
           <button
             className="settings-btn"
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={() => {
+              setPaused(true);
+              setIsSettingsOpen(true);
+            }}
           >
             설정
           </button>
@@ -370,17 +393,11 @@ export default function App() {
 
       {/* ✅ 설정 모달 */}
       {isSettingsOpen && (
-        <div
-          className="modal-backdrop"
-          onMouseDown={() => setIsSettingsOpen(false)}
-        >
+        <div className="modal-backdrop" onMouseDown={closeSettings}>
           <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <div className="modal-title">설정</div>
-              <button
-                className="modal-close"
-                onClick={() => setIsSettingsOpen(false)}
-              >
+              <button className="modal-close" onClick={closeSettings}>
                 ✕
               </button>
             </div>
@@ -390,16 +407,22 @@ export default function App() {
               onApply={(nextCfg) => {
                 setConfig(nextCfg);
                 resetGame(nextCfg);
-                setIsSettingsOpen(false);
+                closeSettings();
               }}
             />
 
             <div className="modal-footer">
-              <button className="btn" onClick={() => setIsSettingsOpen(false)}>
+              <button className="btn" onClick={closeSettings}>
                 닫기
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {paused && !isSettingsOpen && (
+        <div className="pause-overlay">
+          <div className="pause-text">PAUSED</div>
         </div>
       )}
     </div>
