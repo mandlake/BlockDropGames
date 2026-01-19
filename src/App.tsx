@@ -391,6 +391,41 @@ export default function App() {
         </div>
       </div>
 
+      {paused && !isSettingsOpen && (
+        <div className="pause-overlay">
+          <div className="pause-text">PAUSED</div>
+        </div>
+      )}
+
+      {gameOver && (
+        <div className="gameover-overlay">
+          <div className="gameover-box">
+            <div className="gameover-title">GAME OVER</div>
+
+            <div className="gameover-stats">
+              <div className="stat-row">
+                <span className="stat-label">최종 점수</span>
+                <span className="stat-value">{score}</span>
+              </div>
+
+              <div className="stat-row">
+                <span className="stat-label">도달 레벨</span>
+                <span className="stat-value">{level}</span>
+              </div>
+
+              <div className="stat-row">
+                <span className="stat-label">제거한 줄 수</span>
+                <span className="stat-value">{linesCleared}</span>
+              </div>
+            </div>
+
+            <button className="btn" onClick={() => resetGame()}>
+              다시 시작
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ✅ 설정 모달 */}
       {isSettingsOpen && (
         <div className="modal-backdrop" onMouseDown={closeSettings}>
@@ -417,12 +452,6 @@ export default function App() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {paused && !isSettingsOpen && (
-        <div className="pause-overlay">
-          <div className="pause-text">PAUSED</div>
         </div>
       )}
     </div>
