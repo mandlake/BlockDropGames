@@ -60,3 +60,22 @@
   color: #eee;
   font-weight: 700;
 }
+
+.gameover-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.gameover-actions .btn {
+  min-width: 110px;
+}
+
+/* 설정 버튼은 살짝 보조 톤 */
+.btn.btn-secondary {
+  background: #444;
+}
+
+.btn.btn-secondary:hover {
+  background: #555;
+}

@@ -419,9 +419,21 @@ export default function App() {
               </div>
             </div>
 
-            <button className="btn" onClick={() => resetGame()}>
-              다시 시작
-            </button>
+            <div className="gameover-actions">
+              <button className="btn" onClick={() => resetGame()}>
+                다시 시작
+              </button>
+
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setPaused(true);
+                  setIsSettingsOpen(true);
+                }}
+              >
+                설정
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -445,12 +457,6 @@ export default function App() {
                 closeSettings();
               }}
             />
-
-            <div className="modal-footer">
-              <button className="btn" onClick={closeSettings}>
-                닫기
-              </button>
-            </div>
           </div>
         </div>
       )}
