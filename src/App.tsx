@@ -50,8 +50,9 @@ function generateColorPalette(types: number[]): Colors {
   return palette;
 }
 
-function App() {
+export default function App() {
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const [board, setBoard] = useState<Board>(() =>
     createEmptyBoard(DEFAULT_CONFIG.rows, DEFAULT_CONFIG.cols)
@@ -109,34 +110,30 @@ function App() {
     [config]
   );
 
-  // 첫 실행 시 게임 시작
   useEffect(() => {
     resetGame(DEFAULT_CONFIG);
   }, [resetGame]);
 
-  // 자동 낙하
   const tick = useCallback(() => {
     if (gameOver || !piecePrototypes.length) return;
 
     setCurrentPiece((prev) => {
       if (!prev) return prev;
 
-      // 한 칸 내려갈 수 있으면 이동
       if (!collide(board, prev, config.cols, config.rows, 0, 1)) {
         return { ...prev, y: prev.y + 1 };
       }
 
-      // 더 이상 못 내려가면 보드에 고정
       const { shape, x, y, type } = prev;
       const newBoard = board.map((row) => [...row]);
 
       for (let r = 0; r < shape.length; r++) {
         for (let c = 0; c < shape[r].length; c++) {
           if (!shape[r][c]) continue;
-          const boardY = y + r;
-          const boardX = x + c;
-          if (boardY < 0) continue;
-          newBoard[boardY][boardX] = type;
+          const by = y + r;
+          const bx = x + c;
+          if (by < 0) continue;
+          newBoard[by][bx] = type;
         }
       }
 
@@ -145,14 +142,15 @@ function App() {
         config.cols,
         config.rows
       );
+
       if (lines > 0) {
         setScore((s) => s + getLineScore(lines, level));
-        setLinesCleared((prevTotal) => prevTotal + lines);
+        setLinesCleared((t) => t + lines);
         setShowLevelUp(true);
       }
+
       setBoard(clearedBoard);
 
-      // 다음 조각 스폰
       const spawn =
         nextPiece ?? createRandomPiece(piecePrototypes, config.cols);
       const queued = createRandomPiece(piecePrototypes, config.cols);
@@ -176,16 +174,17 @@ function App() {
     piecePrototypes,
   ]);
 
-  // 자동 낙하 interval
   useEffect(() => {
     if (gameOver) return;
     const id = window.setInterval(tick, currentSpeed);
     return () => window.clearInterval(id);
   }, [tick, gameOver, currentSpeed]);
 
-  // 키보드 입력 (config.keys 반영)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // 설정 모달 열려있으면 게임 입력 막기
+      if (isSettingsOpen) return;
+
       if (gameOver || !currentPiece || !piecePrototypes.length) return;
 
       const k = config.keys;
@@ -240,10 +239,10 @@ function App() {
           for (let r = 0; r < shape.length; r++) {
             for (let c = 0; c < shape[r].length; c++) {
               if (!shape[r][c]) continue;
-              const boardY = y + r;
-              const boardX = x + c;
-              if (boardY < 0) continue;
-              newBoard[boardY][boardX] = type;
+              const by = y + r;
+              const bx = x + c;
+              if (by < 0) continue;
+              newBoard[by][bx] = type;
             }
           }
 
@@ -252,11 +251,13 @@ function App() {
             config.cols,
             config.rows
           );
+
           if (lines > 0) {
             setScore((s) => s + getLineScore(lines, level));
-            setLinesCleared((prevTotal) => prevTotal + lines);
+            setLinesCleared((t) => t + lines);
             setShowLevelUp(true);
           }
+
           setBoard(clearedBoard);
 
           const spawn =
@@ -282,12 +283,12 @@ function App() {
     config,
     currentPiece,
     gameOver,
+    isSettingsOpen,
     level,
     nextPiece,
     piecePrototypes,
   ]);
 
-  // 레벨업 애니메이션 숨김
   useEffect(() => {
     if (!showLevelUp) return;
     const id = window.setTimeout(() => setShowLevelUp(false), 800);
@@ -311,8 +312,9 @@ function App() {
         clone[by][bx] = type;
       }
     }
+
     return clone;
-  }, [board, currentPiece, config.rows, config.cols]);
+  }, [board, currentPiece, config.cols, config.rows]);
 
   const ghostPiece: Piece | null = useMemo(() => {
     if (!currentPiece) return null;
@@ -329,26 +331,27 @@ function App() {
       {showLevelUp && <LevelUpOverlay level={level} />}
 
       <div className="game">
-        {/* 1: 이번 판 블록 목록 + 설정 */}
-        <div className="left">
-          <PrototypePanel piecePrototypes={piecePrototypes} colors={colors} />
-          <SettingsPanel
-            config={config}
-            onApply={(nextCfg) => {
-              setConfig(nextCfg);
-              resetGame(nextCfg);
-            }}
-          />
-        </div>
+        {/* 1: 이번 판 블록 목록 패널 */}
+        <PrototypePanel piecePrototypes={piecePrototypes} colors={colors} />
 
         {/* 2: 메인 게임 보드 */}
-        <GameBoard
-          board={displayBoard}
-          cols={config.cols}
-          rows={config.rows}
-          colors={colors}
-          ghostPiece={ghostPiece}
-        />
+        <div className="board-wrap">
+          {/* 설정 버튼 (보드 위) */}
+          <button
+            className="settings-btn"
+            onClick={() => setIsSettingsOpen(true)}
+          >
+            설정
+          </button>
+
+          <GameBoard
+            board={displayBoard}
+            cols={config.cols}
+            rows={config.rows}
+            colors={colors}
+            ghostPiece={ghostPiece}
+          />
+        </div>
 
         {/* 3: 점수 / 다음 블록 / 조작법 패널 */}
         <div className="side">
@@ -356,7 +359,7 @@ function App() {
             score={score}
             level={level}
             gameOver={gameOver}
-            onReset={resetGame}
+            onReset={() => resetGame()}
           />
 
           <NextPiecePanel nextPiece={nextPiece} colors={colors} />
@@ -364,8 +367,41 @@ function App() {
           <ControlsPanel />
         </div>
       </div>
+
+      {/* ✅ 설정 모달 */}
+      {isSettingsOpen && (
+        <div
+          className="modal-backdrop"
+          onMouseDown={() => setIsSettingsOpen(false)}
+        >
+          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <div className="modal-title">설정</div>
+              <button
+                className="modal-close"
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            <SettingsPanel
+              config={config}
+              onApply={(nextCfg) => {
+                setConfig(nextCfg);
+                resetGame(nextCfg);
+                setIsSettingsOpen(false);
+              }}
+            />
+
+            <div className="modal-footer">
+              <button className="btn" onClick={() => setIsSettingsOpen(false)}>
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-export default App;
