@@ -5,6 +5,7 @@ export interface KeyBindings {
   softDrop: string;
   rotate: string;
   hardDrop: string; // e.g. " "
+  hold: string;
 }
 
 export interface SpeedEntry {
@@ -77,6 +78,7 @@ export const DEFAULT_CONFIG: GameConfig = {
     right: "ArrowRight",
     softDrop: "ArrowDown",
     rotate: "ArrowUp",
-    hardDrop: " ", // Space
+    hardDrop: "Space", // Space
+    hold: "KeyC",
   },
 };

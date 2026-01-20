@@ -69,7 +69,7 @@ export const GameBoard = ({
               style={style}
             />
           );
-        })
+        }),
       )}
     </div>
   );
