@@ -1,5 +1,12 @@
 // src/App.tsx
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import "./styles/App.css";
 
 import { GameBoard } from "./components/GameBoard";
@@ -65,11 +72,82 @@ function toProto(piece: Piece): PieceProto {
 
 /** proto로부터 "스폰 가능한 Piece" 생성 */
 function spawnFromProto(proto: PieceProto, cols: number): Piece {
-  // createRandomPiece는 proto 배열 중 하나를 랜덤 선택하는데,
-  // 여기서는 단일 proto로 강제 선택되도록 배열 길이 1로 넘김.
   const spawned = createRandomPiece([proto], cols);
   return resetPieceSpawn(spawned, cols);
 }
+
+// -------------------- reducer --------------------
+
+type GameState = {
+  board: Board;
+  currentPiece: Piece | null;
+  nextPiece: Piece | null;
+  holdPiece: PieceProto | null;
+
+  score: number;
+  gameOver: boolean;
+  linesCleared: number;
+  showLevelUp: boolean;
+
+  colors: Colors;
+  piecePrototypes: PieceProto[];
+};
+
+type GameAction =
+  | { type: "RESET"; cfg: GameConfig }
+  | { type: "PATCH"; patch: Partial<GameState> };
+
+function initGameState(cfg: GameConfig): GameState {
+  const empty = createEmptyBoard(cfg.rows, cfg.cols);
+  const protos = generateShapePrototypes(cfg);
+
+  const types = protos.map((p) => p.type);
+  const palette = generateColorPalette(types);
+
+  const first = resetPieceSpawn(createRandomPiece(protos, cfg.cols), cfg.cols);
+  const second = createRandomPiece(protos, cfg.cols);
+
+  if (collide(empty, first, cfg.cols, cfg.rows, 0, 0)) {
+    return {
+      board: empty,
+      currentPiece: null,
+      nextPiece: null,
+      holdPiece: null,
+      score: 0,
+      gameOver: true,
+      linesCleared: 0,
+      showLevelUp: false,
+      colors: palette,
+      piecePrototypes: protos,
+    };
+  }
+
+  return {
+    board: empty,
+    currentPiece: first,
+    nextPiece: second,
+    holdPiece: null,
+    score: 0,
+    gameOver: false,
+    linesCleared: 0,
+    showLevelUp: false,
+    colors: palette,
+    piecePrototypes: protos,
+  };
+}
+
+function gameReducer(state: GameState, action: GameAction): GameState {
+  switch (action.type) {
+    case "RESET":
+      return initGameState(action.cfg);
+    case "PATCH":
+      return { ...state, ...action.patch };
+    default:
+      return state;
+  }
+}
+
+// -------------------- App --------------------
 
 export default function App() {
   const [config, setConfig] = useState<GameConfig>(DEFAULT_CONFIG);
@@ -78,29 +156,43 @@ export default function App() {
   const [paused, setPaused] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  // game state
-  const [board, setBoard] = useState<Board>(() =>
-    createEmptyBoard(DEFAULT_CONFIG.rows, DEFAULT_CONFIG.cols),
+  // game state (single)
+  const [game, dispatch] = useReducer(gameReducer, DEFAULT_CONFIG, (cfg) =>
+    initGameState(cfg),
   );
-  const [currentPiece, setCurrentPiece] = useState<Piece | null>(null);
-  const [nextPiece, setNextPiece] = useState<Piece | null>(null);
-  const [score, setScore] = useState(0);
-  const [gameOver, setGameOver] = useState(false);
-  const [linesCleared, setLinesCleared] = useState(0);
-  const [showLevelUp, setShowLevelUp] = useState(false);
 
-  // prototypes + colors
-  const [colors, setColors] = useState<Colors>({});
-  const [piecePrototypes, setPiecePrototypes] = useState<PieceProto[]>([]);
+  const {
+    board,
+    currentPiece,
+    nextPiece,
+    holdPiece,
+    score,
+    gameOver,
+    linesCleared,
+    showLevelUp,
+    colors,
+    piecePrototypes,
+  } = game;
 
-  // HOLD (연속 스왑 허용: canHold 없음)
-  const [holdPiece, setHoldPiece] = useState<PieceProto | null>(null);
+  const patch = useCallback((p: Partial<GameState>) => {
+    dispatch({ type: "PATCH", patch: p });
+  }, []);
+
+  const resetGame = useCallback(
+    (nextCfg?: GameConfig) => {
+      dispatch({ type: "RESET", cfg: nextCfg ?? config });
+    },
+    [config],
+  );
 
   // 최신 값 참조용(stale 방지)
   const boardRef = useRef(board);
   const currentPieceRef = useRef(currentPiece);
   const nextPieceRef = useRef(nextPiece);
   const protosRef = useRef(piecePrototypes);
+  const scoreRef = useRef(score);
+  const linesClearedRef = useRef(linesCleared);
+  const holdRef = useRef(holdPiece);
 
   useEffect(() => {
     boardRef.current = board;
@@ -114,6 +206,15 @@ export default function App() {
   useEffect(() => {
     protosRef.current = piecePrototypes;
   }, [piecePrototypes]);
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+  useEffect(() => {
+    linesClearedRef.current = linesCleared;
+  }, [linesCleared]);
+  useEffect(() => {
+    holdRef.current = holdPiece;
+  }, [holdPiece]);
 
   const level = useMemo(() => {
     return Math.floor(linesCleared / config.linesPerLevel) + 1;
@@ -168,16 +269,18 @@ export default function App() {
       const queued = createRandomPiece(protos, config.cols);
 
       if (collide(baseBoard, spawn, config.cols, config.rows, 0, 0)) {
-        setGameOver(true);
-        setCurrentPiece(null);
-        setNextPiece(null);
+        patch({
+          gameOver: true,
+          currentPiece: null,
+          nextPiece: null,
+        });
         return null;
       }
 
-      setNextPiece(queued);
+      patch({ nextPiece: queued });
       return spawn;
     },
-    [config.cols, config.rows],
+    [config.cols, config.rows, patch],
   );
 
   const finalizeLock = useCallback(
@@ -188,18 +291,28 @@ export default function App() {
         config.rows,
       );
 
+      let nextScore = scoreRef.current;
+      let nextLines = linesClearedRef.current;
+      let nextShowLevelUp = false;
+
       if (lines > 0) {
-        setScore((s) => s + getLineScore(lines, level));
-        setLinesCleared((t) => t + lines);
-        setShowLevelUp(true);
+        nextScore = nextScore + getLineScore(lines, level);
+        nextLines = nextLines + lines;
+        nextShowLevelUp = true;
       }
 
-      setBoard(clearedBoard);
+      // 보드 반영
+      patch({
+        board: clearedBoard,
+        score: nextScore,
+        linesCleared: nextLines,
+        showLevelUp: nextShowLevelUp,
+      });
 
       const spawned = spawnNextAndQueue(clearedBoard);
-      setCurrentPiece(spawned);
+      patch({ currentPiece: spawned });
     },
-    [config.cols, config.rows, level, spawnNextAndQueue],
+    [config.cols, config.rows, level, patch, spawnNextAndQueue],
   );
 
   /** piece를 현재 위치(또는 고스트 위치)로 확정 고정 + 후처리 */
@@ -211,73 +324,26 @@ export default function App() {
     [hardLockToBoard, finalizeLock],
   );
 
-  const resetGame = useCallback(
-    (nextConfig?: GameConfig) => {
-      const cfg = nextConfig ?? config;
-
-      const empty = createEmptyBoard(cfg.rows, cfg.cols);
-      const protos = generateShapePrototypes(cfg);
-
-      const types = protos.map((p) => p.type);
-      const palette = generateColorPalette(types);
-
-      const first = resetPieceSpawn(
-        createRandomPiece(protos, cfg.cols),
-        cfg.cols,
-      );
-      const second = createRandomPiece(protos, cfg.cols);
-
-      // prototypes/colors
-      setPiecePrototypes(protos);
-      setColors(palette);
-
-      // game state 초기화
-      setBoard(empty);
-      setScore(0);
-      setGameOver(false);
-      setLinesCleared(0);
-      setShowLevelUp(false);
-
-      // HOLD 초기화
-      setHoldPiece(null);
-
-      // spawn
-      if (collide(empty, first, cfg.cols, cfg.rows, 0, 0)) {
-        setGameOver(true);
-        setCurrentPiece(null);
-        setNextPiece(null);
-      } else {
-        setCurrentPiece(first);
-        setNextPiece(second);
-      }
-    },
-    [config],
-  );
-
-  useEffect(() => {
-    resetGame(DEFAULT_CONFIG);
-  }, [resetGame]);
-
   const tick = useCallback(() => {
     if (paused) return;
     if (gameOver || !piecePrototypes.length) return;
 
-    setCurrentPiece((prev) => {
-      if (!prev) return prev;
+    const cur = currentPieceRef.current;
+    if (!cur) return;
 
-      if (!collide(boardRef.current, prev, config.cols, config.rows, 0, 1)) {
-        return { ...prev, y: prev.y + 1 };
-      }
+    if (!collide(boardRef.current, cur, config.cols, config.rows, 0, 1)) {
+      patch({ currentPiece: { ...cur, y: cur.y + 1 } });
+      return;
+    }
 
-      lockAndFinalize(prev);
-      return prev;
-    });
+    lockAndFinalize(cur);
   }, [
     paused,
     gameOver,
     piecePrototypes.length,
     config.cols,
     config.rows,
+    patch,
     lockAndFinalize,
   ]);
 
@@ -293,27 +359,23 @@ export default function App() {
     if (!cur) return;
 
     const curProto = toProto(cur);
+    const prevHold = holdRef.current;
 
-    setHoldPiece((prevHold) => {
-      // 홀드 비어있음
-      if (!prevHold) {
-        const spawned = spawnNextAndQueue(boardRef.current);
-        if (!spawned) return prevHold;
+    // 홀드 비어있음
+    if (!prevHold) {
+      const spawned = spawnNextAndQueue(boardRef.current);
+      if (!spawned) return;
+      patch({ holdPiece: curProto, currentPiece: spawned });
+      return;
+    }
 
-        setCurrentPiece(spawned);
-        return curProto;
-      }
+    // 홀드 있음: 스왑
+    const swapped = spawnFromProto(prevHold, config.cols);
+    if (collide(boardRef.current, swapped, config.cols, config.rows, 0, 0)) {
+      return;
+    }
 
-      // 홀드 있음: 스왑
-      const swapped = spawnFromProto(prevHold, config.cols);
-
-      if (collide(boardRef.current, swapped, config.cols, config.rows, 0, 0)) {
-        return prevHold;
-      }
-
-      setCurrentPiece(swapped);
-      return curProto;
-    });
+    patch({ holdPiece: curProto, currentPiece: swapped });
   }, [
     paused,
     isSettingsOpen,
@@ -321,6 +383,7 @@ export default function App() {
     spawnNextAndQueue,
     config.cols,
     config.rows,
+    patch,
   ]);
 
   // game loop
@@ -357,46 +420,37 @@ export default function App() {
       // LEFT / RIGHT
       if (e.code === k.left || e.code === k.right) {
         const dir = e.code === k.left ? -1 : 1;
-        setCurrentPiece((prev) => {
-          if (!prev) return prev;
-          if (collide(boardRef.current, prev, config.cols, config.rows, dir, 0))
-            return prev;
-          return { ...prev, x: prev.x + dir };
-        });
+        if (collide(boardRef.current, cur, config.cols, config.rows, dir, 0))
+          return;
+        patch({ currentPiece: { ...cur, x: cur.x + dir } });
         return;
       }
 
       // SOFT DROP
       if (e.code === k.softDrop) {
-        setCurrentPiece((prev) => {
-          if (!prev) return prev;
-          if (collide(boardRef.current, prev, config.cols, config.rows, 0, 1))
-            return prev;
-          return { ...prev, y: prev.y + 1 };
-        });
+        if (collide(boardRef.current, cur, config.cols, config.rows, 0, 1))
+          return;
+        patch({ currentPiece: { ...cur, y: cur.y + 1 } });
         return;
       }
 
       // ROTATE
       if (e.code === k.rotate) {
-        setCurrentPiece((prev) => {
-          if (!prev) return prev;
-          const rotated = rotateMatrix(prev.shape);
-          if (
-            collide(
-              boardRef.current,
-              { ...prev, shape: rotated },
-              config.cols,
-              config.rows,
-              0,
-              0,
-              rotated,
-            )
-          ) {
-            return prev;
-          }
-          return { ...prev, shape: rotated };
-        });
+        const rotated = rotateMatrix(cur.shape);
+        if (
+          collide(
+            boardRef.current,
+            { ...cur, shape: rotated },
+            config.cols,
+            config.rows,
+            0,
+            0,
+            rotated,
+          )
+        ) {
+          return;
+        }
+        patch({ currentPiece: { ...cur, shape: rotated } });
         return;
       }
 
@@ -404,19 +458,14 @@ export default function App() {
       if (e.code === k.hardDrop) {
         e.preventDefault();
 
-        setCurrentPiece((prev) => {
-          if (!prev) return prev;
+        let ghost: Piece = { ...cur };
+        while (
+          !collide(boardRef.current, ghost, config.cols, config.rows, 0, 1)
+        ) {
+          ghost = { ...ghost, y: ghost.y + 1 };
+        }
 
-          let ghost: Piece = { ...prev };
-          while (
-            !collide(boardRef.current, ghost, config.cols, config.rows, 0, 1)
-          ) {
-            ghost = { ...ghost, y: ghost.y + 1 };
-          }
-
-          lockAndFinalize(ghost);
-          return prev;
-        });
+        lockAndFinalize(ghost);
       }
     };
 
@@ -430,16 +479,15 @@ export default function App() {
     config,
     doHold,
     lockAndFinalize,
-    config.cols,
-    config.rows,
+    patch,
   ]);
 
   // level up overlay auto hide
   useEffect(() => {
     if (!showLevelUp) return;
-    const id = window.setTimeout(() => setShowLevelUp(false), 800);
+    const id = window.setTimeout(() => patch({ showLevelUp: false }), 800);
     return () => window.clearTimeout(id);
-  }, [showLevelUp]);
+  }, [showLevelUp, patch]);
 
   // board + current piece overlay
   const displayBoard: Board = useMemo(() => {
